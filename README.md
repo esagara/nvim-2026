@@ -102,7 +102,18 @@ To preview a theme without changing your config, run:
 
 This applies for the current session only.
 
-Available themes: `kanagawa`, `tokyonight`, `catppuccin`, `rose-pine`, `github-nvim-theme`
+Available themes:
+
+| Plugin | Colorscheme names |
+|---|---|
+| `kanagawa` | `kanagawa`, `kanagawa-wave`, `kanagawa-dragon`, `kanagawa-lotus` |
+| `tokyonight` | `tokyonight`, `tokyonight-night`, `tokyonight-storm`, `tokyonight-moon`, `tokyonight-day` |
+| `catppuccin` | `catppuccin`, `catppuccin-latte`, `catppuccin-frappe`, `catppuccin-macchiato`, `catppuccin-mocha` |
+| `rose-pine` | `rose-pine`, `rose-pine-moon`, `rose-pine-dawn` |
+| `github-nvim-theme` | `github_dark`, `github_light`, `github_dark_dimmed`, `github_dark_high_contrast`, `github_light_high_contrast` |
+
+Note: the plugin name and the colorscheme name are not always the same. Always use the
+colorscheme name (right column) with `:colorscheme` and the `theme` variable in `plugins.lua`.
 
 ---
 
@@ -216,11 +227,11 @@ to version control so you can always reproduce a known-good state.
 | lualine.nvim | Statusline |
 | nvim-web-devicons | File type icons |
 | vim-sleuth | Auto-detects indentation from file content |
-| kanagawa.nvim | Active theme |
-| tokyonight.nvim | Inactive theme |
-| catppuccin | Inactive theme |
-| rose-pine | Inactive theme |
-| github-nvim-theme | Inactive theme |
+| kanagawa.nvim | Theme (variants: kanagawa, kanagawa-wave, kanagawa-dragon, kanagawa-lotus) |
+| tokyonight.nvim | Theme (variants: tokyonight, tokyonight-night, tokyonight-storm, tokyonight-moon, tokyonight-day) |
+| catppuccin | Theme (variants: catppuccin-latte, catppuccin-frappe, catppuccin-macchiato, catppuccin-mocha) |
+| rose-pine | Theme (variants: rose-pine, rose-pine-moon, rose-pine-dawn) |
+| github-nvim-theme | Theme (variants: github_dark, github_light, github_dark_dimmed, github_dark_high_contrast, github_light_high_contrast) |
 
 ---
 
