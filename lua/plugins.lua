@@ -180,6 +180,7 @@ return {
 	-- =========================================================================
 	-- EDITOR ENHANCEMENTS
 	-- nvim-autopairs: auto-closes brackets, braces, quotes etc.
+	-- Comment.nvim: toggle comments on lines and blocks
 	-- vim-sleuth: automatically detects and sets indentation from file content
 	-- =========================================================================
 	{
@@ -187,6 +188,13 @@ return {
 		event = "InsertEnter",
 		config = function()
 			require("nvim-autopairs").setup()
+		end,
+	},
+	{
+		"numToStr/Comment.nvim",
+		event = { "BufReadPost", "BufNewFile" },
+		config = function()
+			require("Comment").setup()
 		end,
 	},
 	{ "tpope/vim-sleuth" },

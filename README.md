@@ -219,6 +219,7 @@ to version control so you can always reproduce a known-good state.
 | LuaSnip | Snippet engine |
 | friendly-snippets | Preconfigured snippet library |
 | nvim-autopairs | Auto-closes brackets, braces, quotes |
+| Comment.nvim | Toggle comments on lines and blocks |
 | telescope.nvim | Fuzzy finder for files, grep, buffers |
 | nvim-treesitter | Better syntax highlighting and indentation |
 | gitsigns.nvim | Git diff in gutter, hunk staging and blame |
@@ -247,6 +248,14 @@ to version control so you can always reproduce a known-good state.
 ---
 
 ## Key bindings
+
+### Commenting (Comment.nvim)
+| Key | Action |
+|---|---|
+| `gcc` | Toggle comment on current line |
+| `gc` + motion | Comment over a motion (e.g. `gc5j` = 5 lines down) |
+| `gcap` | Comment entire paragraph |
+| `gc` (visual) | Toggle comment on selection |
 
 ### Telescope
 | Key | Action |
