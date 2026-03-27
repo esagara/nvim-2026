@@ -44,15 +44,72 @@ On first launch, lazy.nvim will bootstrap itself and install all plugins
 automatically. Wait for the installation to complete — you can watch progress
 in the `:Lazy` UI.
 
+> **Note:** The `.luarc.json` file in the repo root is required for `lua_ls`
+> to work correctly when editing Lua config files. It tells `lua_ls` this is
+> a Neovim project and prevents false positive errors on `vim.*` calls. If
+> you see a large number of errors when opening `init.lua` or `plugins.lua`,
+> verify the file exists:
+> ```bash
+> ls ~/.config/nvim/.luarc.json
+> ```
+> If it is missing, recreate it:
+> ```bash
+> cat > ~/.config/nvim/.luarc.json << 'EOF'
+> {
+>   "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+>   "runtime": {
+>     "version": "LuaJIT"
+>   },
+>   "diagnostics": {
+>     "globals": ["vim"]
+>   },
+>   "workspace": {
+>     "library": [
+>       "$VIMRUNTIME",
+>       "${3rd}/luv/library"
+>     ],
+>     "checkThirdParty": false
+>   },
+>   "telemetry": {
+>     "enable": false
+>   }
+> }
+> EOF
+> ```
+
 ### 4. Install language servers and linters
 
-Once plugins are installed, run the following inside Neovim:
+Language servers and linters are installed manually via Mason. Run the
+following inside Neovim to install everything needed for this config:
 
 ```
 :MasonInstall lua-language-server pyright typescript-language-server ruff eslint_d prettierd stylua
 ```
 
-Or open `:Mason` and install them interactively with `i`.
+Or open `:Mason` to browse and install interactively — use `i` to install
+and `X` to uninstall. Mason stores all binaries in:
+
+```
+~/.local/share/nvim/mason/bin/
+```
+
+To check what is currently installed:
+
+```
+:Mason
+```
+
+To install additional tools as needed:
+
+```
+:MasonInstall <name>
+```
+
+To remove a tool:
+
+```
+:MasonUninstall <name>
+```
 
 ### 5. Restart Neovim
 
@@ -63,19 +120,116 @@ a supported file. Verify with:
 :checkhealth lsp
 ```
 
+To confirm which servers are attached to the current buffer:
+
+```
+:lua for _, c in ipairs(vim.lsp.get_clients({bufnr=0})) do print(c.name, c.root_dir) end
+```
+
 ---
 
 ## Structure
 
 ```
 ~/.config/nvim/
-  init.lua        # editor options, keybinds, LSP config
+  init.lua          # editor options, keybinds, LSP config
+  .luarc.json       # lua_ls project config (tells lua_ls this is a Neovim project)
   lua/
-    plugins.lua   # all plugins managed by lazy.nvim
+    plugins.lua     # all plugins managed by lazy.nvim
 ```
 
 Everything lives in two files. `init.lua` handles core settings and LSP setup.
 `plugins.lua` handles all plugin declarations and their configuration.
+`.luarc.json` provides `lua_ls` with the correct Neovim runtime context so it
+does not raise false positive errors when editing Lua config files.
+
+---
+
+## Working with Python
+
+Pyright detects which Python interpreter to use based on the Python that is
+active in the shell when Neovim is launched. This means the virtual
+environment must be active before launching Neovim, otherwise Pyright will
+use the system Python and raise import errors for packages installed in the
+virtual environment.
+
+### pipenv
+
+```bash
+cd your-python-project
+pipenv shell
+nvim .
+```
+
+### venv / virtualenv
+
+```bash
+cd your-python-project
+source .venv/bin/activate
+nvim .
+```
+
+### conda
+
+```bash
+conda activate your-env
+cd your-python-project
+nvim .
+```
+
+To verify Neovim is using the correct Python interpreter, run this inside
+Neovim:
+
+```
+:lua print(vim.fn.exepath("python"))
+```
+
+This should return the path to your virtual environment's Python binary
+rather than the system Python.
+
+### Adding Python root markers
+
+Pyright only attaches to buffers when it finds a recognised project root
+marker file. The current root markers are:
+
+```lua
+root_markers = { "pyproject.toml", "pyrightconfig.json", "setup.py", "setup.cfg", "requirements.txt", "Pipfile" }
+```
+
+If you switch virtual environment managers, add the relevant marker file to
+this list in `init.lua`. Common examples:
+
+| Tool | Marker file to add |
+|---|---|
+| pipenv | `Pipfile` (already included) |
+| poetry | `pyproject.toml` (already included) |
+| venv / virtualenv | `requirements.txt` (already included) |
+| conda | `environment.yml` |
+| hatch | `hatch.toml` |
+| pdm | `pdm.lock` |
+
+To add a new marker, update the `pyright` config in `init.lua`:
+
+```lua
+vim.lsp.config("pyright", {
+  cmd = { mason_bin .. "pyright-langserver", "--stdio" },
+  root_markers = {
+    "pyproject.toml",
+    "pyrightconfig.json",
+    "setup.py",
+    "setup.cfg",
+    "requirements.txt",
+    "Pipfile",
+    "environment.yml",  -- add new markers here
+  },
+  filetypes = { "python" },
+  settings = {
+    python = {
+      pythonPath = vim.fn.exepath("python"),
+    },
+  },
+})
+```
 
 ---
 
@@ -124,19 +278,27 @@ colorscheme name (right column) with `:colorscheme` and the `theme` variable in 
    :MasonInstall <server-name>
    ```
 
-2. Add a config entry in `init.lua` inside the `vim.schedule` block:
+2. Add a config entry in `init.lua` before the lazy setup block:
    ```lua
    vim.lsp.config("<server-name>", {
      cmd = { mason_bin .. "<server-binary>" },
+     root_markers = { "<project-file>" },  -- file that identifies a project root
+     filetypes = { "<filetype>" },         -- filetypes this server should attach to
    })
    ```
 
-3. Add the server name to `vim.lsp.enable`:
+3. Add the server name to `vim.lsp.enable` at the bottom of `init.lua`:
    ```lua
-   vim.lsp.enable({ "lua_ls", "pyright", "ts_ls", "<server-name>" })
+   vim.schedule(function()
+     vim.lsp.enable({ "lua_ls", "pyright", "ts_ls", "<server-name>" })
+   end)
    ```
 
 4. Restart Neovim.
+
+> **Note:** Always set both `root_markers` and `filetypes` when adding a new
+> server. Without them a server may attach to every buffer regardless of file
+> type or project, causing false positive errors in unrelated files.
 
 ---
 
@@ -212,7 +374,6 @@ to version control so you can always reproduce a known-good state.
 | lazy.nvim | Plugin manager |
 | mason.nvim | Installs language servers, linters, formatters |
 | mason-lspconfig.nvim | Bridges Mason with Neovim's native LSP |
-| nvim-lspconfig | Provides default LSP server configurations |
 | nvim-lint | Asynchronous linting on save |
 | conform.nvim | Formatting on save |
 | nvim-cmp | Autocomplete engine |

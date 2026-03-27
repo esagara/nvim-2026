@@ -111,6 +111,42 @@ vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, { desc = "Previous diagnosti
 vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
 
 -- =============================================================================
+-- LSP
+-- Configures language servers using Neovim's native LSP client (0.11+).
+-- root_markers tells the LSP client where to root each server, preventing
+-- servers from attaching to files they shouldn't analyze.
+-- To add a new server: install via :MasonInstall, add vim.lsp.config and
+-- include in vim.lsp.enable below.
+-- =============================================================================
+local mason_bin = vim.fn.stdpath("data") .. "/mason/bin/"
+
+vim.lsp.config("lua_ls", {
+	cmd = { mason_bin .. "lua-language-server" },
+	root_markers = { ".luarc.json" },
+	filetypes = { "lua" },
+})
+
+-- Configured so pyright detects which python environment to use based on the
+-- python used by the shell. The virtual environment must be active before
+-- launching nvim.
+vim.lsp.config("pyright", {
+	cmd = { mason_bin .. "pyright-langserver", "--stdio" },
+	root_markers = { "pyproject.toml", "pyrightconfig.json", "setup.py", "setup.cfg", "Pipfile" },
+	filetypes = { "python" },
+	settings = {
+		python = {
+			pythonPath = vim.fn.exepath("python"),
+		},
+	},
+})
+
+vim.lsp.config("ts_ls", {
+	cmd = { mason_bin .. "typescript-language-server", "--stdio" },
+	root_markers = { "package.json", "tsconfig.json" },
+	filetypes = { "typescript", "typescriptreact", "javascript", "javascriptreact" },
+})
+
+-- =============================================================================
 -- PLUGIN MANAGER (lazy.nvim)
 -- Bootstraps lazy.nvim if not installed, then loads plugins from lua/plugins.lua
 -- =============================================================================
@@ -127,29 +163,7 @@ end
 vim.opt.rtp:prepend(lazypath)
 require("lazy").setup("plugins")
 
--- =============================================================================
--- LSP
--- Configures language servers using Neovim's native LSP client (0.11+).
--- Wrapped in vim.schedule to ensure Mason binaries are available on PATH
--- before the servers are enabled.
--- To add a new server: install via :MasonInstall, add vim.lsp.config and
--- include in vim.lsp.enable below.
--- =============================================================================
+-- Enable servers after lazy loads
 vim.schedule(function()
-	local mason_bin = vim.fn.stdpath("data") .. "/mason/bin/"
-
-	vim.lsp.config("lua_ls", {
-		cmd = { mason_bin .. "lua-language-server" },
-	})
-
-	vim.lsp.config("pyright", {
-		cmd = { mason_bin .. "pyright-langserver", "--stdio" },
-	})
-
-	vim.lsp.config("ts_ls", {
-		cmd = { mason_bin .. "typescript-language-server", "--stdio" },
-		filetypes = { "typescript", "typescriptreact", "javascript", "javascriptreact" },
-	})
-
 	vim.lsp.enable({ "lua_ls", "pyright", "ts_ls" })
 end)

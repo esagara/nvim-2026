@@ -23,9 +23,9 @@ return {
 	-- =========================================================================
 	-- LSP
 	-- Language server support. Mason handles installation of language servers,
-	-- mason-lspconfig bridges Mason with Neovim's native LSP client, and
-	-- nvim-lspconfig provides default server configurations.
-	-- Servers are enabled in init.lua via vim.lsp.enable()
+	-- mason-lspconfig bridges Mason with Neovim's native LSP client.
+	-- Server configuration and activation is handled in init.lua via
+	-- vim.lsp.config and vim.lsp.enable.
 	-- =========================================================================
 	{
 		"williamboman/mason.nvim",
@@ -37,15 +37,8 @@ return {
 		"williamboman/mason-lspconfig.nvim",
 		dependencies = { "williamboman/mason.nvim" },
 		config = function()
-			require("mason-lspconfig").setup({
-				ensure_installed = { "lua_ls", "pyright", "ts_ls" },
-				automatic_installation = true,
-			})
+			require("mason-lspconfig").setup({})
 		end,
-	},
-	{
-		"neovim/nvim-lspconfig",
-		dependencies = { "williamboman/mason-lspconfig.nvim" },
 	},
 
 	-- =========================================================================
