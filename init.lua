@@ -113,8 +113,9 @@ vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" }
 -- =============================================================================
 -- LSP
 -- Configures language servers using Neovim's native LSP client (0.11+).
--- root_markers tells the LSP client where to root each server, preventing
--- servers from attaching to files they shouldn't analyze.
+-- root_markers tells the LSP client where to root each server, and
+-- filetypes restricts which buffers a server can ever attach to. Both are
+-- required to prevent servers attaching to unrelated files.
 -- To add a new server: install via :MasonInstall, add vim.lsp.config and
 -- include in vim.lsp.enable below.
 -- =============================================================================
@@ -131,7 +132,7 @@ vim.lsp.config("lua_ls", {
 -- launching nvim.
 vim.lsp.config("pyright", {
 	cmd = { mason_bin .. "pyright-langserver", "--stdio" },
-	root_markers = { "pyproject.toml", "pyrightconfig.json", "setup.py", "setup.cfg", "Pipfile" },
+	root_markers = { "pyproject.toml", "pyrightconfig.json", "setup.py", "setup.cfg", "requirements.txt", "Pipfile" },
 	filetypes = { "python" },
 	settings = {
 		python = {
@@ -142,8 +143,14 @@ vim.lsp.config("pyright", {
 
 vim.lsp.config("ts_ls", {
 	cmd = { mason_bin .. "typescript-language-server", "--stdio" },
-	root_markers = { "package.json", "tsconfig.json" },
+	root_markers = { "package.json", "tsconfig.json", "jsconfig.json" },
 	filetypes = { "typescript", "typescriptreact", "javascript", "javascriptreact" },
+})
+
+vim.lsp.config("svelte", {
+	cmd = { mason_bin .. "svelteserver", "--stdio" },
+	root_markers = { "package.json", "svelte.config.js" },
+	filetypes = { "svelte" },
 })
 
 -- =============================================================================
@@ -165,5 +172,5 @@ require("lazy").setup("plugins")
 
 -- Enable servers after lazy loads
 vim.schedule(function()
-	vim.lsp.enable({ "lua_ls", "pyright", "ts_ls" })
+	vim.lsp.enable({ "lua_ls", "pyright", "ts_ls", "svelte" })
 end)

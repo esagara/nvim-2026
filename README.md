@@ -9,7 +9,7 @@ with linting, formatting, autocomplete, and a small set of high-value plugins.
 - Git
 - [ripgrep](https://github.com/BurntSushi/ripgrep) — required for Telescope live grep
 - A [Nerd Font](https://www.nerdfonts.com/) — required for icons (JetBrains Mono Nerd Font recommended)
-- Node.js — required for `typescript-language-server` and `eslint_d`
+- Node.js — required for `typescript-language-server`, `svelte-language-server`, and `eslint_d`
 - Python >= 3.8 — required for `pyright` and `ruff`
 
 On macOS all of these can be installed via Homebrew:
@@ -42,7 +42,8 @@ nvim
 
 On first launch, lazy.nvim will bootstrap itself and install all plugins
 automatically. Wait for the installation to complete — you can watch progress
-in the `:Lazy` UI.
+in the `:Lazy` UI. Treesitter parsers will also begin compiling on first
+launch; this can take a minute or two.
 
 > **Note:** The `.luarc.json` file in the repo root is required for `lua_ls`
 > to work correctly when editing Lua config files. It tells `lua_ls` this is
@@ -83,7 +84,7 @@ Language servers and linters are installed manually via Mason. Run the
 following inside Neovim to install everything needed for this config:
 
 ```
-:MasonInstall lua-language-server pyright typescript-language-server ruff eslint_d prettierd stylua
+:MasonInstall lua-language-server pyright typescript-language-server svelte-language-server ruff eslint_d prettierd stylua
 ```
 
 Or open `:Mason` to browse and install interactively — use `i` to install
@@ -290,7 +291,7 @@ colorscheme name (right column) with `:colorscheme` and the `theme` variable in 
 3. Add the server name to `vim.lsp.enable` at the bottom of `init.lua`:
    ```lua
    vim.schedule(function()
-     vim.lsp.enable({ "lua_ls", "pyright", "ts_ls", "<server-name>" })
+     vim.lsp.enable({ "lua_ls", "pyright", "ts_ls", "svelte", "<server-name>" })
    end)
    ```
 
@@ -338,6 +339,32 @@ colorscheme name (right column) with `:colorscheme` and the `theme` variable in 
 
 ---
 
+## Adding a new treesitter parser
+
+1. Add the language name to `ensure_installed` in the treesitter config block
+   in `lua/plugins.lua`:
+   ```lua
+   ensure_installed = {
+     -- ...existing entries
+     "<language>",
+   }
+   ```
+
+2. Restart Neovim and run:
+   ```
+   :Lazy install
+   ```
+
+3. Verify the parser installed:
+   ```
+   :TSInstallInfo
+   ```
+
+> **Important:** treesitter is pinned to the `master` branch — see
+> "Troubleshooting: treesitter" below before changing this.
+
+---
+
 ## Disabling format on save (temporarily)
 
 Run this inside Neovim to disable for the current session:
@@ -365,6 +392,78 @@ To roll back to the previous state if something breaks:
 The `lazy-lock.json` lockfile pins all plugin versions. Commit this file
 to version control so you can always reproduce a known-good state.
 
+> **Caution:** Be especially careful running `:Lazy update` on
+> `nvim-treesitter`. See "Troubleshooting: treesitter" below.
+
+---
+
+## Troubleshooting
+
+### Treesitter
+
+`nvim-treesitter` is pinned to the **`master`** branch in `plugins.lua`:
+
+```lua
+{
+  "nvim-treesitter/nvim-treesitter",
+  branch = "master",
+  build = ":TSUpdate",
+  ...
+}
+```
+
+As of writing, the `main` branch is an in-progress rewrite of the plugin that:
+
+- Removes the `ensure_installed` / `highlight` / `indent` config table used
+  in this setup, replacing it with a different per-buffer API
+- Has unreliable parser installation for some languages (Svelte in
+  particular failed to install via the new API during initial setup)
+- Provides no working `:TSLog` or clear error output when installs fail
+  silently
+
+**Do not switch to the `main` branch** unless you've confirmed it has
+stabilized and are prepared to rewrite the treesitter config block to match
+its new API.
+
+If you see errors like:
+
+```
+Parser could not be created for buffer N and language "<lang>"
+```
+
+or `:TSInstallInfo` / `:TSInstall` are reported as unknown commands, check
+which branch is currently checked out:
+
+```bash
+cd ~/.local/share/nvim/lazy/nvim-treesitter
+git branch --show-current
+```
+
+If it shows `main`, force it back to `master`:
+
+```bash
+rm -rf ~/.local/share/nvim/lazy/nvim-treesitter
+rm -rf ~/.local/share/nvim/site/parser
+```
+
+Restart Neovim and run `:Lazy install` to reinstall on the correct branch.
+
+**Stale install directories:** if a parser install fails partway through
+(e.g. interrupted, or a previous attempt on the `main` branch), you may see:
+
+```
+nvim-treesitter[<lang>]: Could not create tree-sitter-<lang>-tmp
+mkdir: tree-sitter-<lang>-tmp: File exists
+```
+
+Remove the leftover directory and reinstall:
+
+```bash
+rm -rf ~/.local/share/nvim/lazy/nvim-treesitter/tree-sitter-<lang>-tmp
+```
+
+Then run `:TSInstall <lang>` again.
+
 ---
 
 ## Installed plugins
@@ -382,7 +481,7 @@ to version control so you can always reproduce a known-good state.
 | nvim-autopairs | Auto-closes brackets, braces, quotes |
 | Comment.nvim | Toggle comments on lines and blocks |
 | telescope.nvim | Fuzzy finder for files, grep, buffers |
-| nvim-treesitter | Better syntax highlighting and indentation |
+| nvim-treesitter | Better syntax highlighting and indentation (pinned to `master` branch) |
 | gitsigns.nvim | Git diff in gutter, hunk staging and blame |
 | trouble.nvim | Diagnostic panel for errors and warnings |
 | which-key.nvim | Keybinding hint popup |
@@ -403,8 +502,23 @@ to version control so you can always reproduce a known-good state.
 |---|---|---|---|
 | TypeScript / TSX | ts_ls | eslint_d | prettierd |
 | JavaScript / JSX | ts_ls | eslint_d | prettierd |
+| Svelte | svelte-language-server | eslint_d | prettierd (requires `prettier-plugin-svelte`) |
 | Python | pyright | ruff | ruff_format |
 | Lua | lua_ls | — | stylua |
+
+### Svelte notes
+
+`ts_ls` and `svelte-language-server` may both attempt to handle TypeScript
+inside `<script lang="ts">` blocks, which can occasionally produce duplicate
+diagnostics. In practice this is rare enough not to be worth disabling either
+server.
+
+For `prettierd` to format `.svelte` files correctly, the project needs
+`prettier-plugin-svelte` as a dev dependency:
+
+```bash
+npm install --save-dev prettier-plugin-svelte
+```
 
 ---
 

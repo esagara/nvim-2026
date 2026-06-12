@@ -57,6 +57,7 @@ return {
 				typescript = { "eslint_d" },
 				typescriptreact = { "eslint_d" },
 				javascriptreact = { "eslint_d" },
+				svelte = { "eslint_d" },
 			}
 			vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost" }, {
 				callback = function()
@@ -68,9 +69,11 @@ return {
 
 	-- =========================================================================
 	-- FORMATTING
-	-- conform.nvim formats on save. prettierd is used for JS/TS and requires
-	-- a prettier config file in the project root (require_cwd = true).
+	-- conform.nvim formats on save. prettierd is used for JS/TS/Svelte and
+	-- requires a prettier config file in the project root (require_cwd = true).
 	-- ruff_format handles Python, stylua handles Lua.
+	-- Svelte formatting also requires prettier-plugin-svelte as a project
+	-- dev dependency.
 	-- =========================================================================
 	{
 		"stevearc/conform.nvim",
@@ -83,6 +86,7 @@ return {
 					typescript = { "prettierd" },
 					typescriptreact = { "prettierd" },
 					javascriptreact = { "prettierd" },
+					svelte = { "prettierd" },
 					lua = { "stylua" },
 				},
 				format_on_save = {
@@ -213,14 +217,22 @@ return {
 	-- =========================================================================
 	-- SYNTAX
 	-- Treesitter provides better syntax highlighting and smarter indentation.
+	--
+	-- IMPORTANT: pinned to the `master` branch. The `main` branch is a rewrite
+	-- of nvim-treesitter that, as of writing, has unstable/broken parser
+	-- installation for several languages (including svelte) and removes the
+	-- ensure_installed/highlight/indent config API used below. Do not change
+	-- this branch without first confirming the main branch has stabilized.
+	--
 	-- auto_install = true will install parsers for new filetypes automatically.
 	-- =========================================================================
 	{
 		"nvim-treesitter/nvim-treesitter",
+		branch = "master",
 		build = ":TSUpdate",
 		event = { "BufReadPost", "BufNewFile" },
 		config = function()
-			require("nvim-treesitter.config").setup({
+			require("nvim-treesitter.configs").setup({
 				ensure_installed = {
 					"lua",
 					"python",
@@ -229,6 +241,7 @@ return {
 					"javascript",
 					"json",
 					"markdown",
+					"svelte",
 				},
 				highlight = { enable = true },
 				indent = { enable = true },
